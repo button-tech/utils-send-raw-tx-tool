@@ -1,15 +1,15 @@
 package handlers
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/stellar/go/clients/horizon"
-	"os"
 	"context"
 	"encoding/hex"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/gin-gonic/gin"
 	"github.com/imroc/req"
+	"github.com/stellar/go/clients/horizon"
+	"os"
 	"strings"
 )
 
@@ -17,35 +17,39 @@ type tx struct {
 	RawTx string `json:"rawTx"`
 }
 
-type sendRawTx func(string) (string, error)
+type sendRawTx func(string, string) (string, error)
 
 func Send(c *gin.Context) {
 
 	var (
-		tx tx
-		send sendRawTx
+		tx       tx
+		send     sendRawTx
 		currency = c.Param("currency")
 	)
 
 	err := c.BindJSON(&tx)
-	if err != nil{
+	if err != nil {
 		c.JSON(404, "bad request")
 		return
 	}
 
 	switch currency {
 	case "eth":
-		send = sendETH
+		send = sendEthBased
 	case "etc":
-		send = sendETC
+		send = sendEthBased
 	case "xlm":
-		send = sendXLM
+		send = sendXlm
 	case "btc":
-		send = sendBTC
+		send = sendUtxoBased
+	case "bch":
+		send = sendUtxoBased
+	case "ltc":
+		send = sendUtxoBased
 	}
 
-	hash, err := send(tx.RawTx)
-	if err != nil{
+	hash, err := send(tx.RawTx, currency)
+	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
@@ -53,10 +57,11 @@ func Send(c *gin.Context) {
 	c.JSON(200, gin.H{"hash": hash})
 }
 
+func sendEthBased(rawTx, currency string) (string, error) {
 
-func sendETH(rawTx string) (string, error) {
+	endpoint := os.Getenv(strings.ToUpper(currency))
 
-	client, err := ethclient.Dial(os.Getenv("ETH"))
+	client, err := ethclient.Dial(endpoint)
 	if err != nil {
 		return "", err
 	}
@@ -75,28 +80,7 @@ func sendETH(rawTx string) (string, error) {
 	return tx.Hash().Hex(), nil
 }
 
-func sendETC(rawTx string) (string, error) {
-
-	client, err := ethclient.Dial(os.Getenv("ETC"))
-	if err != nil {
-		return "", err
-	}
-
-	rawTxBytes, err := hex.DecodeString(rawTx)
-
-	tx := new(types.Transaction)
-
-	rlp.DecodeBytes(rawTxBytes, &tx)
-
-	err = client.SendTransaction(context.Background(), tx)
-	if err != nil {
-		return "", err
-	}
-
-	return tx.Hash().Hex(), nil
-}
-
-func sendXLM(rawTx string) (string, error) {
+func sendXlm(rawTx string, _ string) (string, error) {
 	resp, err := horizon.DefaultPublicNetClient.SubmitTransaction(rawTx)
 	if err != nil {
 		return "", err
@@ -105,24 +89,25 @@ func sendXLM(rawTx string) (string, error) {
 	return resp.Hash, nil
 }
 
-func sendBTC(rawTx string) (string, error) {
+func sendUtxoBased(rawTx, currency string) (string, error) {
+
+	endpoint := os.Getenv(strings.ToUpper(currency))
 
 	payload := strings.NewReader("data=" + rawTx)
 
-	res, err := req.Post(os.Getenv("BTC"), req.Header{"Content-Type":"application/x-www-form-urlencoded"}, payload)
-
-	if err != nil{
+	res, err := req.Post(endpoint, req.Header{"Content-Type": "application/x-www-form-urlencoded"}, payload)
+	if err != nil {
 		return "", err
 	}
 
 	result := struct {
 		Data struct {
 			Transaction_hash string `json:"transaction_hash"`
-		}`json:"data"`
+		} `json:"data"`
 	}{}
 
 	err = res.ToJSON(&result)
-	if err != nil{
+	if err != nil {
 		return "", err
 	}
 

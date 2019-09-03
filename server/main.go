@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/button-tech/utils-send-raw-tx-tool/server/handlers"
+	"github.com/gin-gonic/gin"
 	"log"
 )
 
@@ -18,7 +18,7 @@ func main() {
 
 	api.POST("/send/:currency", handlers.Send)
 
-	if err := r.Run(":80"); err != nil{
+	if err := r.Run(":80"); err != nil {
 		log.Fatal(err)
 	}
 }
