@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/prazd/button_tx_service/server/handlers"
+	"github.com/button-tech/utils-send-raw-tx-tool/server/handlers"
 	"log"
 )
 

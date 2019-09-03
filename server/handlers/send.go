@@ -9,6 +9,8 @@ import (
 	"os"
 	"context"
 	"encoding/hex"
+	"github.com/imroc/req"
+	"strings"
 )
 
 type tx struct {
@@ -38,6 +40,8 @@ func Send(c *gin.Context) {
 		send = sendETC
 	case "xlm":
 		send = sendXLM
+	case "btc":
+		send = sendBTC
 	}
 
 	hash, err := send(tx.RawTx)
@@ -92,11 +96,35 @@ func sendETC(rawTx string) (string, error) {
 	return tx.Hash().Hex(), nil
 }
 
-func sendXLM(rawTx string)(string, error){
+func sendXLM(rawTx string) (string, error) {
 	resp, err := horizon.DefaultPublicNetClient.SubmitTransaction(rawTx)
 	if err != nil {
 		return "", err
 	}
 
 	return resp.Hash, nil
+}
+
+func sendBTC(rawTx string) (string, error) {
+
+	payload := strings.NewReader("data=" + rawTx)
+
+	res, err := req.Post(os.Getenv("BTC"), req.Header{"Content-Type":"application/x-www-form-urlencoded"}, payload)
+
+	if err != nil{
+		return "", err
+	}
+
+	result := struct {
+		Data struct {
+			Transaction_hash string `json:"transaction_hash"`
+		}`json:"data"`
+	}{}
+
+	err = res.ToJSON(&result)
+	if err != nil{
+		return "", err
+	}
+
+	return result.Data.Transaction_hash, nil
 }
