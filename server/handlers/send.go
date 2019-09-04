@@ -34,7 +34,7 @@ func Send(c *gin.Context) {
 		return
 	}
 
-	switch tx.Currency {
+	switch strings.ToUpper(tx.Currency) {
 	case "ETH":
 		send = sendEthBased
 	case "ETC":
@@ -47,9 +47,11 @@ func Send(c *gin.Context) {
 		send = sendUtxoBased
 	case "LTC":
 		send = sendUtxoBased
+	case "WAVES":
+		send = sendWaves
 	}
 
-	hash, err := send(tx.Data, tx.Currency)
+	hash, err := send(tx.Data, strings.ToUpper(tx.Currency))
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -119,14 +121,32 @@ func sendUtxoBased(data, currency string) (string, error) {
 
 	return result.Data.Transaction_hash, nil
 }
-//
-//func sendWaves(data, _ string) (string, error) {
-//	jsonValue, _ := json.Marshal(data)
-//
-//	res, err := req.Post(os.Getenv("WAVES")+"/transactions/broadcast", req.Param{"Content-type": "application/json"}, jsonValue)
-//	if err != nil {
-//		return "", nil
-//	}
-//
-//	return res.String(), nil
-//}
+
+func sendWaves(data, _ string) (string, error) {
+
+	url := os.Getenv("WAVES") + "/transactions/broadcast"
+
+	payload := strings.NewReader(data)
+
+	res, err := req.Post(url, req.Header{"Content-Type": "application/json"}, payload)
+	if err != nil {
+		return "", err
+	}
+
+	result := struct {
+		Message string `json:"message"`
+		ID      string `json:"id"`
+	}{}
+
+	err = res.ToJSON(&result)
+	if err != nil {
+		return "", err
+	}
+
+	if len(result.Message) != 0 {
+		return "", errors.New(result.Message)
+	}
+
+	return result.ID, nil
+
+}
