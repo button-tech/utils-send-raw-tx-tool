@@ -16,7 +16,7 @@ func main() {
 
 	api.GET("/info", handlers.GetInfo)
 
-	api.POST("/send/:currency", handlers.Send)
+	api.POST("/send", handlers.Send)
 
 	if err := r.Run(":80"); err != nil {
 		log.Fatal(err)
