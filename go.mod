@@ -12,6 +12,7 @@ require (
 	github.com/ethereum/go-ethereum v1.9.3
 	github.com/fjl/memsize v0.0.0-20190710130421-bcb5799ab5e5 // indirect
 	github.com/gballet/go-libpcsclite v0.0.0-20190607065134-2772fd86a8ff // indirect
+	github.com/gin-contrib/cors v1.3.0
 	github.com/gin-gonic/gin v1.4.0
 	github.com/gorilla/websocket v1.4.1 // indirect
 	github.com/howeyc/fsnotify v0.9.0 // indirect

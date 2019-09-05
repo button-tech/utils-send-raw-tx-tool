@@ -1,14 +1,18 @@
 package main
 
 import (
-	"github.com/button-tech/utils-send-raw-tx-tool/server/handlers"
-	"github.com/gin-gonic/gin"
 	"log"
+
+	"github.com/button-tech/utils-send-raw-tx-tool/server/handlers"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
 
 	r := gin.New()
+
+	r.Use(cors.Default())
 
 	gin.SetMode(gin.ReleaseMode)
 
