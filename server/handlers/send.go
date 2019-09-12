@@ -57,9 +57,8 @@ func Send(c *gin.Context) {
 
 	hash, err = send(tx.Data, currency)
 	if err != nil {
-
-		hash, err = send(tx.Data, os.Getenv("RESERVE_") + currency)
-		if err != nil{
+		hash, err = send(tx.Data, "RESERVE_"+currency)
+		if err != nil {
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
 		}
@@ -69,9 +68,9 @@ func Send(c *gin.Context) {
 	c.JSON(200, gin.H{"hash": hash})
 }
 
-func sendEthBased(data, endpoint string) (string, error) {
+func sendEthBased(data, currency string) (string, error) {
 
-	e := os.Getenv(endpoint)
+	e := os.Getenv(currency)
 
 	c, err := ethclient.Dial(e)
 	if err != nil {
@@ -102,13 +101,13 @@ func sendXlm(data, _ string) (string, error) {
 	return resp.Hash, nil
 }
 
-func sendUtxoBased(data, endpoint string) (string, error) {
+func sendUtxoBased(data, currency string) (string, error) {
 
-	e := os.Getenv(endpoint)
+	e := os.Getenv(currency)
 
 	var request sendRawTx
 
-	if strings.Contains(e, "RESERVE"){
+	if strings.Contains(currency, "RESERVE") {
 		request = sendDataGET
 	} else {
 		request = sendDataPOST
@@ -152,7 +151,7 @@ func sendWaves(data, _ string) (string, error) {
 }
 
 // for utxo based
-func sendDataPOST(data, endpoint string)(string, error){
+func sendDataPOST(data, endpoint string) (string, error) {
 
 	payload := strings.NewReader("data=" + data)
 
@@ -179,10 +178,15 @@ func sendDataPOST(data, endpoint string)(string, error){
 	return r.Data.Transaction_hash, nil
 }
 
-func sendDataGET(data, endpoint string)(string, error){
+func sendDataGET(data, endpoint string) (string, error) {
+
 	res, err := req.Get(endpoint + "/sendtx/" + data)
-	if err != nil{
+	if err != nil {
 		return "", err
+	}
+
+	if res.Response().StatusCode != 200 {
+		return "", errors.New("Invalid transaction")
 	}
 
 	r := struct {
