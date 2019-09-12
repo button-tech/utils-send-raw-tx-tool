@@ -152,7 +152,7 @@ func sendWaves(data, _ string) (string, error) {
 }
 
 // for utxo based
-func sendDataPOST(endpoint, data string)(string, error){
+func sendDataPOST(data, endpoint string)(string, error){
 
 	payload := strings.NewReader("data=" + data)
 
