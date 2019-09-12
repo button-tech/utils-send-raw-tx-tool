@@ -34,7 +34,9 @@ func Send(c *gin.Context) {
 		return
 	}
 
-	switch strings.ToUpper(tx.Currency) {
+	currency := strings.ToUpper(tx.Currency)
+
+	switch currency {
 	case "ETH":
 		send = sendEthBased
 	case "ETC":
@@ -51,20 +53,27 @@ func Send(c *gin.Context) {
 		send = sendWaves
 	}
 
-	hash, err := send(tx.Data, strings.ToUpper(tx.Currency))
+	var hash string
+
+	hash, err = send(tx.Data, currency)
 	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
+
+		hash, err = send(tx.Data, os.Getenv("RESERVE_") + currency)
+		if err != nil{
+			c.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+
 	}
 
 	c.JSON(200, gin.H{"hash": hash})
 }
 
-func sendEthBased(data, currency string) (string, error) {
+func sendEthBased(data, endpoint string) (string, error) {
 
-	endpoint := os.Getenv(currency)
+	e := os.Getenv(endpoint)
 
-	c, err := ethclient.Dial(endpoint)
+	c, err := ethclient.Dial(e)
 	if err != nil {
 		return "", err
 	}
@@ -93,33 +102,24 @@ func sendXlm(data, _ string) (string, error) {
 	return resp.Hash, nil
 }
 
-func sendUtxoBased(data, currency string) (string, error) {
+func sendUtxoBased(data, endpoint string) (string, error) {
 
-	endpoint := os.Getenv(currency)
+	e := os.Getenv(endpoint)
 
-	payload := strings.NewReader("data=" + data)
+	var request sendRawTx
 
-	res, err := req.Post(endpoint, req.Header{"Content-Type": "application/x-www-form-urlencoded"}, payload)
+	if strings.Contains(e, "RESERVE"){
+		request = sendDataGET
+	} else {
+		request = sendDataPOST
+	}
+
+	result, err := request(data, e)
 	if err != nil {
 		return "", err
 	}
 
-	result := struct {
-		Data struct {
-			Transaction_hash string `json:"transaction_hash"`
-		} `json:"data"`
-	}{}
-
-	if res.Response().StatusCode != 200 {
-		return "", errors.New("Invalid transaction")
-	}
-
-	err = res.ToJSON(&result)
-	if err != nil {
-		return "", err
-	}
-
-	return result.Data.Transaction_hash, nil
+	return result, nil
 }
 
 func sendWaves(data, _ string) (string, error) {
@@ -149,4 +149,50 @@ func sendWaves(data, _ string) (string, error) {
 
 	return result.ID, nil
 
+}
+
+// for utxo based
+func sendDataPOST(endpoint, data string)(string, error){
+
+	payload := strings.NewReader("data=" + data)
+
+	res, err := req.Post(endpoint, req.Header{"Content-Type": "application/x-www-form-urlencoded"}, payload)
+	if err != nil {
+		return "", err
+	}
+
+	r := struct {
+		Data struct {
+			Transaction_hash string `json:"transaction_hash"`
+		} `json:"data"`
+	}{}
+
+	if res.Response().StatusCode != 200 {
+		return "", errors.New("Invalid transaction")
+	}
+
+	err = res.ToJSON(&r)
+	if err != nil {
+		return "", err
+	}
+
+	return r.Data.Transaction_hash, nil
+}
+
+func sendDataGET(data, endpoint string)(string, error){
+	res, err := req.Get(endpoint + "/sendtx/" + data)
+	if err != nil{
+		return "", err
+	}
+
+	r := struct {
+		Result string `json:"result"`
+	}{}
+
+	err = res.ToJSON(&r)
+	if err != nil {
+		return "", err
+	}
+
+	return r.Result, nil
 }
