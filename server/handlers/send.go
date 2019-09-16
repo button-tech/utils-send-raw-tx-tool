@@ -78,10 +78,16 @@ func sendEthBased(data, currency string) (string, error) {
 	}
 
 	rawTxBytes, err := hex.DecodeString(data)
+	if err != nil{
+		return "", nil
+	}
 
 	tx := new(types.Transaction)
 
-	rlp.DecodeBytes(rawTxBytes, &tx)
+	err = rlp.DecodeBytes(rawTxBytes, &tx)
+	if err != nil{
+		return "", nil
+	}
 
 	err = c.SendTransaction(context.Background(), tx)
 	if err != nil {
