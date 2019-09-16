@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"log"
 )
 
 type txDescription struct {
@@ -21,6 +23,21 @@ var info = descriptions{Info: []txDescription{
 	{"WAVES", "json", tx{"{\"senderPublicKey\":\"5sgLhwTbDZhUDuVJoM4uxnAz9AXiiX5v5zLEePqnz73F\",\"recipient\":\"address:3PDn2Sqwdz7Zbj6PJcNniRYKdLR3U3DJabR\",\"assetId\":\"\",\"amount\":1000,\"feeAssetId\":\"\",\"fee\":100000,\"attachment\":\"\",\"timestamp\":1567605589000,\"signature\":\"4zvtuqJh5AWZzzkuouh1ypXmEAKPciRZyzqoB7e86ycKi6k7R5XfSKkmiAXYrb6DWh7sNGNBAMp8pTWEEqD26xDu\",\"type\":4}", "WAVES"}},
 }}
 
+var result []byte
+
+func init() {
+	var err error
+	result, err = json.MarshalIndent(&info, "", " ")
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func GetInfo(c *gin.Context) {
-	c.JSON(200, &info)
+	c.Writer.Header().Set("Content-Type", "application/json")
+	c.Writer.WriteHeader(200)
+	_, err := c.Writer.Write(result)
+	if err != nil {
+		c.JSON(500, gin.H{"err": err.Error()})
+	}
 }
