@@ -22,7 +22,7 @@ func main() {
 
 	api.POST("/send", handlers.Send)
 
-	if err := r.Run(":80"); err != nil {
+	if err := r.Run(":8080"); err != nil {
 		log.Fatal(err)
 	}
 }
