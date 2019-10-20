@@ -70,11 +70,6 @@ func Send(c *gin.Context) {
 
 	hash, err = send(tx.Data, currency)
 	if err != nil {
-		if currency == "TON" {
-			c.JSON(500, gin.H{"error": err.Error()})
-			return
-		}
-
 		hash, err = send(tx.Data, "RESERVE_"+currency)
 		if err != nil {
 			c.JSON(500, gin.H{"error": err.Error()})
