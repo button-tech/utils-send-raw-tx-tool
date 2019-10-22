@@ -3,12 +3,9 @@ package handlers
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
-	"os"
 	"os/exec"
 	"strings"
 )
-
-var workdir = os.Getenv("WORKDIR")
 
 func SigningMessageHash(c *gin.Context) {
 
@@ -24,11 +21,11 @@ func SigningMessageHash(c *gin.Context) {
 		return
 	}
 
-	stdout, err := exec.Command(workdir+
-		"liteclient-build/crypto/fift", "-I",
-		workdir+"lite-client/crypto/fift/lib/",
+	stdout, err := exec.Command(
+		"/app/liteclient-build/crypto/fift", "-I",
+		"/app/lite-client/crypto/fift/lib/",
 		"-s",
-		workdir+"wrappers/signing_message_hash.fif",
+		"/app/wrappers/signing_message_hash.fif",
 		params.DestinationAddress,
 		params.Seqno,
 		params.Amount).Output()
@@ -76,7 +73,7 @@ func SendGrams(c *gin.Context) {
 
 func sendGr(data string) error {
 
-	stdout, err := exec.Command(workdir+"wrappers/send_grams.py", data, workdir).Output()
+	stdout, err := exec.Command("/app/wrappers/send_grams.py", data).Output()
 	if err != nil {
 		return err
 	}
