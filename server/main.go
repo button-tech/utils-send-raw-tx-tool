@@ -22,6 +22,9 @@ func main() {
 
 	api.POST("/send", handlers.Send)
 
+	// TON testnet
+	api.POST("/sendGrams", handlers.SendGrams)
+
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal(err)
 	}

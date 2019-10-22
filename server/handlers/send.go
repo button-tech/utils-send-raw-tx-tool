@@ -11,13 +11,12 @@ import (
 	"github.com/imroc/req"
 	"github.com/stellar/go/clients/horizon"
 	"os"
-	"os/exec"
 	"strings"
 )
 
 type tx struct {
 	Data     string `json:"data"`
-	Currency string `json:"currency"`
+	Currency string `json:"currency,omitempty"`
 }
 
 type sendRawTx func(string, string) (string, error)
@@ -37,18 +36,6 @@ func Send(c *gin.Context) {
 
 	currency := strings.ToUpper(tx.Currency)
 
-	// TON testnet
-	if currency == "TON" {
-		err := sendTon(tx.Data)
-		if err != nil {
-			c.JSON(500, gin.H{"error": err.Error()})
-			return
-		}
-
-		c.JSON(200, gin.H{"status": "query has been sent to the network"})
-		return
-	}
-
 	switch currency {
 	case "ETH":
 		send = sendEthBased
@@ -64,6 +51,9 @@ func Send(c *gin.Context) {
 		send = sendUtxoBased
 	case "WAVES":
 		send = sendWaves
+	default:
+		c.JSON(404, "bad request")
+		return
 	}
 
 	var hash string
@@ -218,21 +208,4 @@ func sendDataGET(data, endpoint string) (string, error) {
 	}
 
 	return r.Result, nil
-}
-
-// TON testnet
-func sendTon(data string) error {
-
-	workdir := os.Getenv("WORKDIR")
-
-	stdout, err := exec.Command(workdir+"wrappers/send_grams.py", data, workdir).Output()
-	if err != nil {
-		return err
-	}
-
-	if string(stdout) == "error\n" {
-		return errors.New("Failed")
-	}
-
-	return nil
 }
