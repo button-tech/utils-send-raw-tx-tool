@@ -52,7 +52,7 @@ func Send(c *gin.Context) {
 	case "WAVES":
 		send = sendWaves
 	default:
-		c.JSON(404, "bad request")
+		c.JSON(400, "bad request")
 		return
 	}
 
