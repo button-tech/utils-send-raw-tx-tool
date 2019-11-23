@@ -298,3 +298,8 @@ func checkSubmitXRPTxStatus(info *xrpSentTxInfo) error {
 	}
 	return nil
 }
+
+func sendCosmos(data, currency string) (string, error) {
+	e := os.Getenv(currency)
+
+}
