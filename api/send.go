@@ -22,6 +22,21 @@ type tx struct {
 	Currency string `json:"currency,omitempty"`
 }
 
+type wavesDataTxToSubmit struct {
+	Message string `json:"message"`
+	ID      string `json:"id"`
+}
+
+type utxoBasedPostDataTxToSubmit struct {
+	Data struct {
+		TransactionHash string `json:"transaction_hash"`
+	} `json:"data"`
+}
+
+type utxoBasedGetDataTxToSubmit struct {
+	Result string `json:"result"`
+}
+
 type h struct {
 	Hash string `json:"hash"`
 }
@@ -218,20 +233,16 @@ func sendWaves(data, _ string) (string, error) {
 		return "", err
 	}
 
-	result := struct {
-		Message string `json:"message"`
-		ID      string `json:"id"`
-	}{}
-
-	if err = res.ToJSON(&result); err != nil {
+	var r wavesDataTxToSubmit
+	if err = res.ToJSON(&r); err != nil {
 		return "", errors.Wrap(err, "toJSON")
 	}
 
-	if len(result.Message) != 0 {
-		return "", errors.New(result.Message)
+	if len(r.Message) != 0 {
+		return "", errors.New(r.Message)
 	}
-
-	return result.ID, nil
+	hash := r.ID
+	return hash, nil
 }
 
 // for utxo based
@@ -242,22 +253,16 @@ func sendDataPOST(data, endpoint string) (string, error) {
 		return "", err
 	}
 
-	r := struct {
-		Data struct {
-			TransactionHash string `json:"transaction_hash"`
-		} `json:"data"`
-	}{}
-
 	if res.Response().StatusCode != 200 {
 		return "", errors.New("Invalid transaction")
 	}
 
+	var r utxoBasedPostDataTxToSubmit
 	if err = res.ToJSON(&r); err != nil {
 		return "", errors.Wrap(err, "toJSON")
 	}
-	txHash := r.Data.TransactionHash
-
-	return txHash, nil
+	hash := r.Data.TransactionHash
+	return hash, nil
 }
 
 func sendDataGET(data, endpoint string) (string, error) {
@@ -270,15 +275,12 @@ func sendDataGET(data, endpoint string) (string, error) {
 		return "", errors.Wrap(errors.New("invalid transaction"), "sendDataGET")
 	}
 
-	r := struct {
-		Result string `json:"result"`
-	}{}
-
+	var r utxoBasedGetDataTxToSubmit
 	if err = res.ToJSON(&r); err != nil {
 		return "", errors.Wrap(err, "toJSON")
 	}
-
-	return r.Result, nil
+	hash := r.Result
+	return hash, nil
 }
 
 func sendBnB(data, currency string) (string, error) {
