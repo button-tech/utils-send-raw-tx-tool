@@ -13,7 +13,6 @@ import (
 	"github.com/stellar/go/clients/horizon"
 	"os"
 	"strings"
-	"time"
 )
 
 type tx struct {
@@ -24,8 +23,6 @@ type tx struct {
 type sendRawTx func(string, string) (string, error)
 
 func Send(c *gin.Context) {
-
-	start := time.Now()
 
 	var (
 		tx   tx
@@ -79,7 +76,7 @@ func Send(c *gin.Context) {
 
 	c.JSON(200, gin.H{"hash": hash})
 
-	logger.LogRequest(time.Since(start), currency, "SendRawTx", true)
+	logger.SendMessage("Send Raw tx: " + currency)
 }
 
 func sendEthBased(data, currency string) (string, error) {
