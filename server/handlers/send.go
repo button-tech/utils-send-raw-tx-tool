@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"github.com/button-tech/logger"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -12,6 +13,7 @@ import (
 	"github.com/stellar/go/clients/horizon"
 	"os"
 	"strings"
+	"time"
 )
 
 type tx struct {
@@ -23,6 +25,8 @@ type sendRawTx func(string, string) (string, error)
 
 func Send(c *gin.Context) {
 
+	start := time.Now()
+
 	var (
 		tx   tx
 		send sendRawTx
@@ -30,6 +34,7 @@ func Send(c *gin.Context) {
 
 	err := c.BindJSON(&tx)
 	if err != nil {
+		logger.Error("bad request", err.Error())
 		c.JSON(404, "bad request")
 		return
 	}
@@ -62,6 +67,9 @@ func Send(c *gin.Context) {
 	if err != nil {
 		hash, err = send(tx.Data, "RESERVE_"+currency)
 		if err != nil {
+			logger.Error("send raw tx", err.Error(), logger.Params{
+				"currency": currency,
+			})
 			c.JSON(500, gin.H{"error": err.Error()})
 			return
 		}
@@ -69,6 +77,8 @@ func Send(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"hash": hash})
+
+	logger.LogRequest(time.Since(start), currency, "SendRawTx")
 }
 
 func sendEthBased(data, currency string) (string, error) {

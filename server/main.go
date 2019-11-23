@@ -3,10 +3,18 @@ package main
 import (
 	"log"
 
+	"github.com/button-tech/logger"
 	"github.com/button-tech/utils-send-raw-tx-tool/server/handlers"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"os"
 )
+
+func init() {
+	if err := logger.InitLogger(os.Getenv("DSN")); err != nil {
+		log.Fatal(err)
+	}
+}
 
 func main() {
 
