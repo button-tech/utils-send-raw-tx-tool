@@ -78,6 +78,29 @@ type tronSentResult struct {
 	Result bool `json:"result"`
 }
 
+type cosmosSentTxInfo struct {
+	CheckTx struct {
+		Code      int      `json:"code"`
+		Data      string   `json:"data"`
+		Log       string   `json:"log"`
+		GasUsed   int      `json:"gas_used"`
+		GasWanted int      `json:"gas_wanted"`
+		Info      string   `json:"info"`
+		Tags      []string `json:"tags"`
+	} `json:"check_tx"`
+	DeliverTx struct {
+		Code      int      `json:"code"`
+		Data      string   `json:"data"`
+		Log       string   `json:"log"`
+		GasUsed   int      `json:"gas_used"`
+		GasWanted int      `json:"gas_wanted"`
+		Info      string   `json:"info"`
+		Tags      []string `json:"tags"`
+	} `json:"deliver_tx"`
+	Hash   string `json:"hash"`
+	Height int    `json:"height"`
+}
+
 const submitMethod = "submit"
 
 type sendRawTx func(string, string) (string, error)
@@ -126,6 +149,8 @@ func sendBased(currency string) (send sendRawTx) {
 		send = sendXRP
 	case "TRON":
 		send = sendTron
+	case "COSMOS":
+		send = sendCosmos
 	default:
 		send = nil
 	}
@@ -366,4 +391,30 @@ func submitTronTx(data, currency string) (bool, error) {
 	ok := r.Result
 
 	return ok, nil
+}
+
+func sendCosmos(data, currency string) (string, error) {
+	return submitCosmosTx(data, currency)
+}
+
+func submitCosmosTx(data, currency string) (string, error) {
+	e := os.Getenv(currency)
+
+	rq := req.New()
+	resp, err := rq.Post(e, req.BodyJSON(&data))
+	if err != nil {
+		return "", errors.Wrap(err, "submitCosmosTx")
+	}
+
+	if resp.Response().StatusCode != fasthttp.StatusOK {
+		return "", errors.Wrap(errors.New("responseStatusNotOk"), "submitCosmosTx")
+	}
+
+	var info cosmosSentTxInfo
+	if err = resp.ToJSON(&info); err != nil {
+		return "", errors.Wrap(err, "COSMOStoJSON")
+	}
+	hash := info.Hash
+
+	return hash, nil
 }
