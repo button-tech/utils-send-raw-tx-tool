@@ -31,9 +31,10 @@ func main() {
 	api.POST("/send", handlers.Send)
 
 	// TON testnet
-	api.POST("/sendGrams", handlers.SendGrams)
 
-	api.POST("/signMessageHash", handlers.SigningMessageHash)
+	//api.POST("/sendGrams", handlers.SendGrams)
+	//
+	//api.POST("/signMessageHash", handlers.SigningMessageHash)
 
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal(err)
