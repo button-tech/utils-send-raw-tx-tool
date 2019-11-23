@@ -64,6 +64,7 @@ func Send(c *gin.Context) {
 	var hash string
 
 	hash, err = send(tx.Data, currency)
+	logger.Info("Send tx: " + currency)
 	if err != nil {
 		hash, err = send(tx.Data, "RESERVE_"+currency)
 		if err != nil {
@@ -78,7 +79,7 @@ func Send(c *gin.Context) {
 
 	c.JSON(200, gin.H{"hash": hash})
 
-	logger.LogRequest(time.Since(start), currency, "SendRawTx")
+	logger.LogRequest(time.Since(start), currency, "SendRawTx", true)
 }
 
 func sendEthBased(data, currency string) (string, error) {
