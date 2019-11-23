@@ -52,6 +52,32 @@ type xrpSentTxInfo struct {
 	} `json:"result"`
 }
 
+type tronDataTxToSubmit struct {
+	Signature []string `json:"signature"`
+	TxID      string   `json:"txID"`
+	RawData   struct {
+		Contract []struct {
+			Parameter struct {
+				Value struct {
+					Amount       int    `json:"amount"`
+					OwnerAddress string `json:"owner_address"`
+					ToAddress    string `json:"to_address"`
+				} `json:"value"`
+				TypeURL string `json:"type_url"`
+			} `json:"parameter"`
+			Type string `json:"type"`
+		} `json:"contract"`
+		RefBlockBytes string `json:"ref_block_bytes"`
+		RefBlockHash  string `json:"ref_block_hash"`
+		Expiration    int64  `json:"expiration"`
+		Timestamp     int64  `json:"timestamp"`
+	} `json:"raw_data"`
+}
+
+type tronSentResult struct {
+	Result bool `json:"result"`
+}
+
 const submitMethod = "submit"
 
 type sendRawTx func(string, string) (string, error)
@@ -98,6 +124,8 @@ func sendBased(currency string) (send sendRawTx) {
 		send = sendBnB
 	case "XRP":
 		send = sendXRP
+	case "TRON":
+		send = sendTron
 	default:
 		send = nil
 	}
@@ -299,7 +327,43 @@ func checkSubmitXRPTxStatus(info *xrpSentTxInfo) error {
 	return nil
 }
 
-func sendCosmos(data, currency string) (string, error) {
+func sendTron(data, currency string) (string, error) {
+	ok, err := submitTronTx(data, currency)
+	if err != nil {
+		return "", err
+	}
+
+	if !ok {
+		return "", errors.New("tx reverse")
+	}
+
+	var t tronDataTxToSubmit
+	if err := json.Unmarshal([]byte(data), &t); err != nil {
+		return "", errors.Wrap(err, "sendTron")
+	}
+
+	hash := t.TxID
+	return hash, nil
+}
+
+func submitTronTx(data, currency string) (bool, error) {
 	e := os.Getenv(currency)
 
+	rq := req.New()
+	resp, err := rq.Post(e, req.BodyJSON(&data))
+	if err != nil {
+		return false, errors.Wrap(err, "submitTronTx")
+	}
+
+	var r tronSentResult
+	if err = resp.ToJSON(&r); err != nil {
+		return false, errors.Wrap(err, "XRPtoJSON")
+	}
+
+	if resp.Response().StatusCode != fasthttp.StatusOK {
+		return false, errors.Wrap(errors.New("statusResponseNotOk"), "submitTronTx")
+	}
+	ok := r.Result
+
+	return ok, nil
 }
