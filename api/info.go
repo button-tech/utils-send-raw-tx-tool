@@ -1,9 +1,7 @@
-package handlers
+package api
 
 import (
-	"encoding/json"
-	"github.com/gin-gonic/gin"
-	"log"
+	routing "github.com/qiangxue/fasthttp-routing"
 )
 
 type txDescription struct {
@@ -28,19 +26,10 @@ var info = handlersDescriptions{Send: []txDescription{
 
 var infoResponse []byte
 
-func init() {
-	var err error
-	infoResponse, err = json.MarshalIndent(&info, "", " ")
-	if err != nil {
-		log.Fatal(err)
+func infoHandler(ctx *routing.Context) error {
+	ctx.SetContentType("application/json")
+	if _, err := ctx.Write(infoResponse); err != nil {
+		return err
 	}
-}
-
-func GetInfo(c *gin.Context) {
-	c.Writer.Header().Set("Content-Type", "application/json")
-	c.Writer.WriteHeader(200)
-	_, err := c.Writer.Write(infoResponse)
-	if err != nil {
-		c.JSON(500, gin.H{"err": err.Error()})
-	}
+	return nil
 }

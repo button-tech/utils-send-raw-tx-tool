@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/pkg/errors"
 	"os"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/imroc/req"
+	"github.com/pkg/errors"
 	routing "github.com/qiangxue/fasthttp-routing"
 	"github.com/stellar/go/clients/horizon"
 	"github.com/valyala/fasthttp"
@@ -25,6 +25,34 @@ type tx struct {
 type h struct {
 	Hash string `json:"hash"`
 }
+
+type broadcastResponse struct {
+	Code int    `json:"code"`
+	Hash string `json:"hash"`
+	Ok   bool   `json:"ok"`
+}
+
+type xrpDataTxToSubmit struct {
+	Method string `json:"method"`
+	Params []struct {
+		TxBlob string `json:"tx_blob"`
+	} `json:"params"`
+}
+
+type xrpSentTxInfo struct {
+	Result struct {
+		EngineResult        string `json:"engine_result"`
+		EngineResultCode    int    `json:"engine_result_code"`
+		EngineResultMessage string `json:"engine_result_message"`
+		Status              string `json:"status"`
+		TxJSON              struct {
+			Fee  string `json:"Fee"`
+			Hash string `json:"hash"`
+		} `json:"tx_json"`
+	} `json:"result"`
+}
+
+const submitMethod = "submit"
 
 type sendRawTx func(string, string) (string, error)
 
@@ -66,6 +94,10 @@ func sendBased(currency string) (send sendRawTx) {
 		send = sendUtxoBased
 	case "WAVES":
 		send = sendWaves
+	case "BNB":
+		send = sendBnB
+	case "XRP":
+		send = sendXRP
 	default:
 		send = nil
 	}
@@ -73,7 +105,6 @@ func sendBased(currency string) (send sendRawTx) {
 }
 
 func sendEthBased(data, currency string) (string, error) {
-
 	e := os.Getenv(currency)
 
 	c, err := ethclient.Dial(e)
@@ -86,37 +117,31 @@ func sendEthBased(data, currency string) (string, error) {
 		return "", nil
 	}
 
-	tx := new(types.Transaction)
-
-	err = rlp.DecodeBytes(rawTxBytes, &tx)
-	if err != nil {
-		return "", nil
-	}
-
-	err = c.SendTransaction(context.Background(), tx)
-	if err != nil {
+	var tx types.Transaction
+	if err = rlp.DecodeBytes(rawTxBytes, &tx); err != nil {
 		return "", err
 	}
 
-	return tx.Hash().Hex(), nil
+	if err = c.SendTransaction(context.Background(), &tx); err != nil {
+		return "", err
+	}
+	hexedHash := tx.Hash().Hex()
+
+	return hexedHash, nil
 }
 
 func sendXlm(data, _ string) (string, error) {
-
 	resp, err := horizon.DefaultPublicNetClient.SubmitTransaction(data)
 	if err != nil {
 		return "", err
 	}
-
 	return resp.Hash, nil
 }
 
 func sendUtxoBased(data, currency string) (string, error) {
-
 	e := os.Getenv(currency)
 
 	var request sendRawTx
-
 	if strings.Contains(currency, "RESERVE") {
 		request = sendDataGET
 	} else {
@@ -132,11 +157,9 @@ func sendUtxoBased(data, currency string) (string, error) {
 }
 
 func sendWaves(data, _ string) (string, error) {
-
 	url := os.Getenv("WAVES") + "/transactions/broadcast"
 
 	payload := strings.NewReader(data)
-
 	res, err := req.Post(url, req.Header{"Content-Type": "application/json"}, payload)
 	if err != nil {
 		return "", err
@@ -147,9 +170,8 @@ func sendWaves(data, _ string) (string, error) {
 		ID      string `json:"id"`
 	}{}
 
-	err = res.ToJSON(&result)
-	if err != nil {
-		return "", err
+	if err = res.ToJSON(&result); err != nil {
+		return "", errors.Wrap(err, "toJSON")
 	}
 
 	if len(result.Message) != 0 {
@@ -157,14 +179,11 @@ func sendWaves(data, _ string) (string, error) {
 	}
 
 	return result.ID, nil
-
 }
 
 // for utxo based
 func sendDataPOST(data, endpoint string) (string, error) {
-
 	payload := strings.NewReader("data=" + data)
-
 	res, err := req.Post(endpoint, req.Header{"Content-Type": "application/x-www-form-urlencoded"}, payload)
 	if err != nil {
 		return "", err
@@ -172,7 +191,7 @@ func sendDataPOST(data, endpoint string) (string, error) {
 
 	r := struct {
 		Data struct {
-			Transaction_hash string `json:"transaction_hash"`
+			TransactionHash string `json:"transaction_hash"`
 		} `json:"data"`
 	}{}
 
@@ -180,33 +199,102 @@ func sendDataPOST(data, endpoint string) (string, error) {
 		return "", errors.New("Invalid transaction")
 	}
 
-	err = res.ToJSON(&r)
-	if err != nil {
-		return "", err
+	if err = res.ToJSON(&r); err != nil {
+		return "", errors.Wrap(err, "toJSON")
 	}
+	txHash := r.Data.TransactionHash
 
-	return r.Data.Transaction_hash, nil
+	return txHash, nil
 }
 
 func sendDataGET(data, endpoint string) (string, error) {
-
 	res, err := req.Get(endpoint + "/sendtx/" + data)
 	if err != nil {
 		return "", err
 	}
 
 	if res.Response().StatusCode != 200 {
-		return "", errors.New("invalid transaction")
+		return "", errors.Wrap(errors.New("invalid transaction"), "sendDataGET")
 	}
 
 	r := struct {
 		Result string `json:"result"`
 	}{}
 
-	err = res.ToJSON(&r)
+	if err = res.ToJSON(&r); err != nil {
+		return "", errors.Wrap(err, "toJSON")
+	}
+
+	return r.Result, nil
+}
+
+func sendBnB(data, currency string) (string, error) {
+	e := os.Getenv(currency)
+
+	rq := req.New()
+	resp, err := rq.Post(e, req.Header{"Content-type": "text/plain"}, data)
 	if err != nil {
 		return "", err
 	}
 
-	return r.Result, nil
+	broadcasted := make([]broadcastResponse, 1)
+	if err := resp.ToJSON(&broadcasted); err != nil {
+		return "", errors.Wrap(err, "toJSON")
+	}
+	hash := broadcasted[0].Hash
+	return hash, nil
+}
+
+func sendXRP(data, currency string) (string, error) {
+	broadcasted, err := submitXRPTx(data, currency)
+	if err != nil {
+		return "", err
+	}
+
+	if err := checkSubmitXRPTxStatus(broadcasted); err != nil {
+		return "", err
+	}
+
+	hash := broadcasted.Result.TxJSON.Hash
+	return hash, nil
+}
+
+func submitXRPTx(data, currency string) (*xrpSentTxInfo, error) {
+	e := os.Getenv(currency)
+
+	rq := req.New()
+	resp, err := rq.Post(e, req.BodyJSON(xrpTxToSubmit(data)))
+	if err != nil {
+		return nil, errors.Wrap(err, "submitXRPTxRequest")
+	}
+
+	if resp.Response().StatusCode != 200 {
+		return nil, errors.Wrap(errors.New("StatusCodeNotOk"), "Request to Ripple")
+	}
+
+	var info xrpSentTxInfo
+	if err := resp.ToJSON(&info); err != nil {
+		return nil, errors.Wrap(err, "XRPtoJSON")
+	}
+	return &info, nil
+}
+
+func xrpTxToSubmit(txBlob string) *xrpDataTxToSubmit {
+	return &xrpDataTxToSubmit{
+		Method: submitMethod,
+		Params: []struct {
+			TxBlob string `json:"tx_blob"`
+		}{
+			{
+				TxBlob: txBlob,
+			},
+		},
+	}
+}
+
+func checkSubmitXRPTxStatus(info *xrpSentTxInfo) error {
+	if info.Result.Status == "error" {
+		return errors.Wrap(errors.New("ResponseStatusError"), "RippleAPI")
+	}
+	return nil
 }

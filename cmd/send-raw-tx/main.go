@@ -9,8 +9,13 @@ import (
 	"github.com/button-tech/utils-send-raw-tx-tool/api"
 )
 
+const port = ":8080"
+
 func main() {
-	server := api.NewServer()
+	server, err := api.NewServer()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	signalEx := make(chan os.Signal, 1)
 	defer close(signalEx)
@@ -22,8 +27,8 @@ func main() {
 		syscall.SIGQUIT)
 
 	go func() {
-		log.Println("start http server")
-		if err := server.Core.ListenAndServe(":8080"); err != nil {
+		log.Printf("start http server on port:%s", port)
+		if err := server.Core.ListenAndServe(port); err != nil {
 			log.Fatal(err)
 		}
 	}()
