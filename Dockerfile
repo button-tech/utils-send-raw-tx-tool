@@ -4,7 +4,7 @@ RUN mkdir /build
 ADD . /build
 WORKDIR /build
 
-RUN go build -o bin/main ./server
+RUN go build -o bin/main ./cmd/send-raw-tx
 
 FROM python:3.7-stretch
 
