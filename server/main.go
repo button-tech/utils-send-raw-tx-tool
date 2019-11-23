@@ -36,7 +36,7 @@ func main() {
 	//
 	//api.POST("/signMessageHash", handlers.SigningMessageHash)
 
-	if err := r.Run(":8080"); err != nil {
+	if err := r.Run(":80"); err != nil {
 		log.Fatal(err)
 	}
 }
