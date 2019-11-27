@@ -117,6 +117,10 @@ type cosmosSentTxInfo struct {
 	Height int    `json:"height"`
 }
 
+type algorandSentResult struct {
+	TxID string `json:"txId"`
+}
+
 const submitMethod = "submit"
 
 type sendRawTx func(string, string) (string, error)
@@ -168,6 +172,8 @@ func sendBased(currency string) (send sendRawTx) {
 		send = sendTron
 	case "COSMOS":
 		send = sendCosmos
+	case "ALGORAND":
+		send = sendAlgorand
 	default:
 		send = nil
 	}
@@ -422,5 +428,31 @@ func submitCosmosTx(data, currency string) (string, error) {
 	}
 	hash := info.Hash
 
+	return hash, nil
+}
+
+func sendAlgorand(data, currency string) (string, error) {
+	return submitAlgorand(data, currency)
+}
+
+func submitAlgorand(data, currency string) (string, error) {
+	e := os.Getenv(currency)
+
+	rq := req.New()
+	resp, err := rq.Post(e, req.Header{"application": "x-binary"}, []byte(data))
+	if err != nil {
+		return "", errors.Wrap(err, "submitAlgorandRequest")
+	}
+
+	if resp.Response().StatusCode != fasthttp.StatusOK {
+		return "", errors.Wrap(errors.New("responseStatusNotOk"), "submitAlgorand")
+	}
+
+	var r algorandSentResult
+	if err := resp.ToJSON(&r); err != nil {
+		return "", errors.Wrap(err, "AlgorandToJSON")
+	}
+
+	hash := r.TxID
 	return hash, nil
 }
