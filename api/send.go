@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/button-tech/logger"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -140,6 +141,7 @@ func sendHandler(ctx *routing.Context) error {
 	}
 	hash, err = send(tx.Data, "RESERVE_"+currency)
 	if err != nil {
+		logger.Error("send", err.Error())
 		respondWithJSON(ctx, fasthttp.StatusInternalServerError, err.Error())
 		return nil
 	}
@@ -247,8 +249,9 @@ func sendWaves(data, _ string) (string, error) {
 
 // for utxo based
 func sendDataPOST(data, endpoint string) (string, error) {
+	rq := req.New()
 	payload := strings.NewReader("data=" + data)
-	res, err := req.Post(endpoint, req.Header{"Content-Type": "application/x-www-form-urlencoded"}, payload)
+	res, err := rq.Post(endpoint, req.Header{"Content-Type": "application/x-www-form-urlencoded"}, payload)
 	if err != nil {
 		return "", err
 	}
@@ -266,7 +269,8 @@ func sendDataPOST(data, endpoint string) (string, error) {
 }
 
 func sendDataGET(data, endpoint string) (string, error) {
-	res, err := req.Get(endpoint + "/sendtx/" + data)
+	rq := req.New()
+	res, err := rq.Get(endpoint + "/sendtx/" + data)
 	if err != nil {
 		return "", err
 	}

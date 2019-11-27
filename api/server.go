@@ -2,7 +2,7 @@ package api
 
 import (
 	"encoding/json"
-	"log"
+	"github.com/button-tech/logger"
 	"net/http"
 	"time"
 
@@ -71,6 +71,7 @@ func cors(ctx *routing.Context) error {
 			respondWithJSON(ctx, fasthttp.StatusInternalServerError, map[string]interface{}{
 				"error": err},
 			)
+			logger.Error("cors", err)
 		}
 		ctx.SetContentType("application/json")
 		ctx.SetBody(b)
@@ -96,6 +97,6 @@ func respondWithJSON(ctx *routing.Context, code int, payload interface{}) {
 	ctx.SetContentType("application/json")
 	ctx.SetStatusCode(code)
 	if err := json.NewEncoder(ctx).Encode(payload); err != nil {
-		log.Println("write answer", err)
+		logger.Error("write answer", err)
 	}
 }

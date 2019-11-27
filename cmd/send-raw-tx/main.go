@@ -6,15 +6,20 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/button-tech/logger"
 	"github.com/button-tech/utils-send-raw-tx-tool/api"
 )
 
 const port = ":8080"
 
 func main() {
+	if err := logger.InitLogger(os.Getenv("DSN")); err != nil {
+		logger.Fatal(err)
+	}
+
 	server, err := api.NewServer()
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	signalEx := make(chan os.Signal, 1)
@@ -29,13 +34,13 @@ func main() {
 	go func() {
 		log.Printf("start http server on port:%s", port)
 		if err := server.Core.ListenAndServe(port); err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 	}()
 
 	defer func() {
 		if err := server.Core.Shutdown(); err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 	}()
 
