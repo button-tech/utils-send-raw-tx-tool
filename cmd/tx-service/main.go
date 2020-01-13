@@ -1,12 +1,11 @@
 package main
 
 import (
-	"log"
-
 	"github.com/button-tech/logger"
-	"github.com/button-tech/utils-send-raw-tx-tool/server/handlers"
+	"github.com/button-tech/utils-send-raw-tx-tool/cmd/tx-service/handlers"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"log"
 	"os"
 )
 
@@ -29,12 +28,6 @@ func main() {
 	api.GET("/info", handlers.GetInfo)
 
 	api.POST("/send", handlers.Send)
-
-	// TON testnet
-
-	//api.POST("/sendGrams", handlers.SendGrams)
-	//
-	//api.POST("/signMessageHash", handlers.SigningMessageHash)
 
 	if err := r.Run(":80"); err != nil {
 		log.Fatal(err)
