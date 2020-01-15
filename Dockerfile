@@ -4,7 +4,7 @@ RUN mkdir /build
 ADD . /build
 WORKDIR /build
 
-RUN go build -o bin/main ./cmd/tx-service/
+RUN go build -o bin/main ./cmd/send-raw-tx/
 
 FROM debian:latest
 COPY --from=builder /build/bin /app
