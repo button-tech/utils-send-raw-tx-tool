@@ -5,7 +5,7 @@ ADD . /build
 WORKDIR /build
 
 
-RUN go build -o bin/main ./cmd/send-raw-tx/
+RUN go build -o bin/main ./services/send-raw-tx/
 
 
 FROM debian:latest

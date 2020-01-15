@@ -143,6 +143,7 @@ func sendHandler(ctx *routing.Context) error {
 		respondWithJSON(ctx, fasthttp.StatusOK, hash)
 		return nil
 	}
+
 	hash, err = send(tx.Data, "RESERVE_"+currency)
 	if err != nil {
 		logger.Error("send", err.Error())
@@ -164,16 +165,16 @@ func sendBased(currency string) (send sendRawTx) {
 		send = sendUtxoBased
 	case "WAVES":
 		send = sendWaves
-	case "BNB":
-		send = sendBnB
-	case "XRP":
-		send = sendXRP
-	case "TRON":
-		send = sendTron
-	case "COSMOS":
-		send = sendCosmos
-	case "ALGORAND":
-		send = sendAlgorand
+	//case "BNB":
+	//	send = sendBnB
+	//case "XRP":
+	//	send = sendXRP
+	//case "TRON":
+	//	send = sendTron
+	//case "COSMOS":
+	//	send = sendCosmos
+	//case "ALGORAND":
+	//	send = sendAlgorand
 	default:
 		send = nil
 	}
@@ -406,10 +407,6 @@ func submitTronTx(data, currency string) (bool, error) {
 }
 
 func sendCosmos(data, currency string) (string, error) {
-	return submitCosmosTx(data, currency)
-}
-
-func submitCosmosTx(data, currency string) (string, error) {
 	e := os.Getenv(currency)
 
 	rq := req.New()
@@ -432,10 +429,6 @@ func submitCosmosTx(data, currency string) (string, error) {
 }
 
 func sendAlgorand(data, currency string) (string, error) {
-	return submitAlgorand(data, currency)
-}
-
-func submitAlgorand(data, currency string) (string, error) {
 	e := os.Getenv(currency)
 
 	rq := req.New()

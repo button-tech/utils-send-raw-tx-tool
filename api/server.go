@@ -83,8 +83,6 @@ func (s *Server) initBaseRoute() {
 	s.G = s.R.Group(groupURL)
 	s.G.Post("/send", sendHandler)
 	s.G.Get("/info", infoHandler)
-	s.G.Post("/sendGrams", sendGramsHandler)
-	s.G.Post("/signMessageHash", signingMsgHashHandler)
 }
 
 func createInfoResponse() error {

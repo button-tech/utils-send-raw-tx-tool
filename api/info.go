@@ -11,8 +11,7 @@ type txDescription struct {
 }
 
 type handlersDescriptions struct {
-	Send      []txDescription `json:"/send"`
-	SendGrams txDescription   `json:"/sendGrams"`
+	Send []txDescription `json:"/send"`
 }
 
 var info = handlersDescriptions{Send: []txDescription{
@@ -28,7 +27,6 @@ var info = handlersDescriptions{Send: []txDescription{
 	// todo: need to approve
 	{"ALGORAND", "binary", tx{"", "ALGORAND"}},
 },
-	SendGrams: txDescription{"TON", "hex", tx{Data: "B5EE9C724101020100A50001CF88015F22047CC96B03CA2F33C363340E4550317A32D4C6BF58773E799BD6ECB67F2607DFEAA63832274E15FCB4768E6E5C5A31D7D0F9380B3CFEDC31E7DECC1FA065D13A79909867EA366E2B7DCBFF0B05CF91D7B986383B9A46106270DF6F079C6058000000180C010070620072379E8B9816F48D2DC83D6F9995D602C590F305D64893A9BFB581B0260A59EB21DCD65000000000000000000000000000005445535437D8FAE2"}},
 }
 
 var infoResponse []byte

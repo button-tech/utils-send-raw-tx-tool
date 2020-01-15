@@ -22,17 +22,17 @@ WORKDIR /app
 
 RUN apt-get update -y && apt-get install python3-pip -y
 
-COPY cmd/ton/requirements.txt /app
+COPY services/ton/requirements.txt /app
 
 RUN pip3 install -r requirements.txt
 
-ADD cmd/ton/fift-scripts /app/fift-scripts
+ADD services/ton/fift-scripts /app/fift-scripts
 
 RUN wget https://test.ton.org/ton-lite-client-test1.config.json
 
 RUN mv ton-lite-client-test1.config.json ton-global.config
 
-COPY cmd/ton/main.py /app
+COPY services/ton/main.py /app
 
 EXPOSE 3000
 
